@@ -1,0 +1,8 @@
+name: my-frontend
+
+services:
+  frontend-static:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: my-frontend-static:latest
