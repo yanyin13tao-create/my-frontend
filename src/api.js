@@ -26,11 +26,9 @@ export async function createPost({ story, author, category }) {
   return result.post;
 }
 
-export async function likePost(id, clientId) {
+export async function likePost(id) {
   const response = await fetch(`/api/posts/${encodeURIComponent(id)}/like`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ clientId }),
   });
   const result = await response.json();
 

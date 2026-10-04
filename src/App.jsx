@@ -3,7 +3,7 @@ import { HeartCrack } from 'lucide-react';
 import { createPost, fetchPosts, likePost } from './api';
 import { categories, fallbackEntries } from './constants';
 import { EntryCard } from './EntryCard';
-import { getClientId, getLikedPostIds, saveLikedPostIds } from './likes';
+import { getLikedPostIds, saveLikedPostIds } from './likes';
 import { SubmissionModal } from './SubmissionModal';
 
 export function App() {
@@ -14,7 +14,6 @@ export function App() {
   const [submissionMessage, setSubmissionMessage] = React.useState('');
   const [feedStatus, setFeedStatus] = React.useState('loading');
   const [likedPostIds, setLikedPostIds] = React.useState(() => getLikedPostIds());
-  const clientId = React.useMemo(() => getClientId(), []);
   const appName = import.meta.env.VITE_APP_NAME || 'WallOfBrokenPromises';
 
   React.useEffect(() => {
@@ -104,7 +103,7 @@ export function App() {
     }
 
     try {
-      const result = await likePost(entry.id, clientId);
+      const result = await likePost(entry.id);
       const updatedPost = result.post;
 
       setPostedEntries((current) =>
