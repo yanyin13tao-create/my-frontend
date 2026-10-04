@@ -86,7 +86,8 @@ function App() {
 
   async function handleSubmit(event) {
     event.preventDefault();
-    const form = new FormData(event.currentTarget);
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
     const story = String(form.get('story') || '').trim();
     const author = String(form.get('author') || '').trim() || 'Anonymous Victim';
     const category = String(form.get('category') || 'ghosted');
@@ -117,7 +118,7 @@ function App() {
         },
         ...current,
       ]);
-      event.currentTarget.reset();
+      formElement.reset();
       setSubmissionStatus('idle');
       setIsModalOpen(false);
     } catch {
@@ -251,7 +252,7 @@ function App() {
 }
 
 function CategoryBadge({ categoryKey }) {
-  const category = categories[categoryKey];
+  const category = categories[categoryKey] || categories.ghosted;
   const Icon = category.icon;
 
   return (
