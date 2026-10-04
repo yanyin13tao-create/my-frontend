@@ -147,6 +147,10 @@ export function App() {
   }
 
   async function handleLike(entry) {
+    if (entry.type === 'system') {
+      return;
+    }
+
     const wasLiked = likedPostIds.has(entry.id);
     const wasDisliked = dislikedPostIds.has(entry.id);
     const nextLikedPostIds = updateSavedVote(
@@ -177,10 +181,6 @@ export function App() {
           : currentEntry,
       ),
     );
-
-    if (entry.type === 'system') {
-      return;
-    }
 
     try {
       const result = await likePost(entry.id);
@@ -217,6 +217,10 @@ export function App() {
   }
 
   async function handleDislike(entry) {
+    if (entry.type === 'system') {
+      return;
+    }
+
     const wasLiked = likedPostIds.has(entry.id);
     const wasDisliked = dislikedPostIds.has(entry.id);
     const nextDislikedPostIds = updateSavedVote(
@@ -248,10 +252,6 @@ export function App() {
           : currentEntry,
       ),
     );
-
-    if (entry.type === 'system') {
-      return;
-    }
 
     try {
       const result = await dislikePost(entry.id);
@@ -368,6 +368,7 @@ export function App() {
           <section className="feed" aria-live="polite">
             {visibleEntries.map((entry) => (
               <EntryCard
+                canVote={entry.type !== 'system'}
                 entry={entry}
                 isDisliked={dislikedPostIds.has(entry.id)}
                 isLiked={likedPostIds.has(entry.id)}

@@ -62,6 +62,7 @@ button {
 .entry-card footer,
 .entry-actions,
 .entry-card footer button,
+.entry-action-count,
 .modal-heading,
 .form-actions {
   display: flex;
@@ -281,6 +282,10 @@ button {
   gap: 0.35rem;
   background: transparent;
   color: inherit;
+}
+
+.entry-action-count {
+  gap: 0.35rem;
 }
 
 .entry-card footer button:hover {
