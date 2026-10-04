@@ -1,12 +1,22 @@
-export async function fetchPosts() {
-  const response = await fetch('/api/posts');
+export async function fetchPosts({ before, limit = 50, version } = {}) {
+  const params = new URLSearchParams({ limit: String(limit) });
+
+  if (before) {
+    params.set('before', before);
+  }
+
+  if (version && !before) {
+    params.set('version', version);
+  }
+
+  const response = await fetch(`/api/posts?${params.toString()}`);
   const result = await response.json();
 
   if (!response.ok || !Array.isArray(result.posts)) {
     throw new Error('Invalid posts response.');
   }
 
-  return result.posts;
+  return result;
 }
 
 export async function createPost({ story, author, category }) {

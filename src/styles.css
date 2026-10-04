@@ -188,6 +188,12 @@ button {
   text-align: center;
 }
 
+.load-more-row {
+  display: flex;
+  justify-content: center;
+  margin-top: 1.5rem;
+}
+
 .entry-card {
   display: flex;
   min-height: 230px;

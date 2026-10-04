@@ -15,9 +15,13 @@ export function App() {
   const [activeCategory, setActiveCategory] = React.useState('all');
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [postedEntries, setPostedEntries] = React.useState(fallbackEntries);
+  const [nextCursor, setNextCursor] = React.useState(null);
+  const [feedVersion, setFeedVersion] = React.useState(null);
+  const [hasMorePosts, setHasMorePosts] = React.useState(false);
   const [submissionStatus, setSubmissionStatus] = React.useState('idle');
   const [submissionMessage, setSubmissionMessage] = React.useState('');
   const [feedStatus, setFeedStatus] = React.useState('loading');
+  const [historyStatus, setHistoryStatus] = React.useState('idle');
   const [likedPostIds, setLikedPostIds] = React.useState(() => getLikedPostIds());
   const [dislikedPostIds, setDislikedPostIds] = React.useState(() => getDislikedPostIds());
   const appName = import.meta.env.VITE_APP_NAME || 'WallOfBrokenPromises';
@@ -27,10 +31,13 @@ export function App() {
 
     async function loadPosts() {
       try {
-        const posts = await fetchPosts();
+        const result = await fetchPosts();
 
         if (!ignore) {
-          setPostedEntries([...posts, ...fallbackEntries]);
+          setPostedEntries([...result.posts, ...fallbackEntries]);
+          setNextCursor(result.nextCursor);
+          setFeedVersion(result.version);
+          setHasMorePosts(result.hasMore);
           setFeedStatus('ready');
         }
       } catch {
@@ -83,6 +90,30 @@ export function App() {
       setSubmissionMessage(
         error.result?.reason || 'Could not reach the safety check. Please try again.',
       );
+    }
+  }
+
+  async function handleLoadMore() {
+    if (!nextCursor || historyStatus === 'loading') {
+      return;
+    }
+
+    setHistoryStatus('loading');
+
+    try {
+      const result = await fetchPosts({ before: nextCursor, version: feedVersion });
+
+      setPostedEntries((current) => {
+        const existingIds = new Set(current.map((entry) => entry.id));
+        const newPosts = result.posts.filter((post) => !existingIds.has(post.id));
+        return [...current.filter((entry) => entry.type !== 'system'), ...newPosts, ...fallbackEntries];
+      });
+      setNextCursor(result.nextCursor);
+      setFeedVersion(result.version);
+      setHasMorePosts(result.hasMore);
+      setHistoryStatus('idle');
+    } catch {
+      setHistoryStatus('error');
     }
   }
 
@@ -258,6 +289,23 @@ export function App() {
             />
           ))}
         </section>
+
+        {activeCategory === 'all' && hasMorePosts ? (
+          <div className="load-more-row">
+            <button
+              className="ghost-button"
+              disabled={historyStatus === 'loading'}
+              type="button"
+              onClick={handleLoadMore}
+            >
+              {historyStatus === 'loading' ? 'Loading...' : 'Load Older Posts'}
+            </button>
+          </div>
+        ) : null}
+
+        {historyStatus === 'error' ? (
+          <p className="feed-message">Older posts could not be loaded. Please try again.</p>
+        ) : null}
       </main>
 
       {isModalOpen ? (
