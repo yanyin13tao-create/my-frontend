@@ -3,6 +3,7 @@ import { HeartCrack } from 'lucide-react';
 import { createPost, fetchPosts, likePost } from './api';
 import { categories, fallbackEntries } from './constants';
 import { EntryCard } from './EntryCard';
+import { getClientId, getLikedPostIds, saveLikedPostIds } from './likes';
 import { SubmissionModal } from './SubmissionModal';
 
 export function App() {
@@ -12,6 +13,8 @@ export function App() {
   const [submissionStatus, setSubmissionStatus] = React.useState('idle');
   const [submissionMessage, setSubmissionMessage] = React.useState('');
   const [feedStatus, setFeedStatus] = React.useState('loading');
+  const [likedPostIds, setLikedPostIds] = React.useState(() => getLikedPostIds());
+  const clientId = React.useMemo(() => getClientId(), []);
   const appName = import.meta.env.VITE_APP_NAME || 'WallOfBrokenPromises';
 
   React.useEffect(() => {
@@ -79,6 +82,15 @@ export function App() {
   }
 
   async function handleLike(entry) {
+    if (likedPostIds.has(entry.id)) {
+      return;
+    }
+
+    const nextLikedPostIds = new Set(likedPostIds);
+    nextLikedPostIds.add(entry.id);
+    setLikedPostIds(nextLikedPostIds);
+    saveLikedPostIds(nextLikedPostIds);
+
     setPostedEntries((current) =>
       current.map((currentEntry) =>
         currentEntry.id === entry.id
@@ -92,7 +104,9 @@ export function App() {
     }
 
     try {
-      const updatedPost = await likePost(entry.id);
+      const result = await likePost(entry.id, clientId);
+      const updatedPost = result.post;
+
       setPostedEntries((current) =>
         current.map((currentEntry) =>
           currentEntry.id === updatedPost.id ? updatedPost : currentEntry,
@@ -106,6 +120,10 @@ export function App() {
             : currentEntry,
         ),
       );
+      const rolledBackLikedPostIds = new Set(nextLikedPostIds);
+      rolledBackLikedPostIds.delete(entry.id);
+      setLikedPostIds(rolledBackLikedPostIds);
+      saveLikedPostIds(rolledBackLikedPostIds);
     }
   }
 
@@ -168,7 +186,12 @@ export function App() {
 
         <section className="feed" aria-live="polite">
           {visibleEntries.map((entry) => (
-            <EntryCard entry={entry} key={entry.id} onLike={handleLike} />
+            <EntryCard
+              entry={entry}
+              isLiked={likedPostIds.has(entry.id)}
+              key={entry.id}
+              onLike={handleLike}
+            />
           ))}
         </section>
       </main>

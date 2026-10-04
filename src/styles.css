@@ -261,6 +261,12 @@ button {
   color: #fb7185;
 }
 
+.entry-card footer button:disabled {
+  cursor: default;
+  color: #fb7185;
+  opacity: 0.8;
+}
+
 .modal-backdrop {
   position: fixed;
   inset: 0;

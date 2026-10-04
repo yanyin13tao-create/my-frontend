@@ -2,7 +2,7 @@ import { HeartCrack } from 'lucide-react';
 import { CategoryBadge } from './CategoryBadge';
 import { getEntryTimeLabel } from './time';
 
-export function EntryCard({ entry, onLike }) {
+export function EntryCard({ entry, isLiked, onLike }) {
   const timeLabel = getEntryTimeLabel(entry);
 
   return (
@@ -16,7 +16,13 @@ export function EntryCard({ entry, onLike }) {
       </div>
       <footer>
         <span>{entry.author}</span>
-        <button type="button" aria-label={`Support ${entry.author}`} onClick={() => onLike(entry)}>
+        <button
+          type="button"
+          aria-label={isLiked ? `Already supported ${entry.author}` : `Support ${entry.author}`}
+          aria-pressed={isLiked}
+          disabled={isLiked}
+          onClick={() => onLike(entry)}
+        >
           <HeartCrack aria-hidden="true" />
           {entry.count}
         </button>

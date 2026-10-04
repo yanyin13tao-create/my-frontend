@@ -26,9 +26,11 @@ export async function createPost({ story, author, category }) {
   return result.post;
 }
 
-export async function likePost(id) {
+export async function likePost(id, clientId) {
   const response = await fetch(`/api/posts/${encodeURIComponent(id)}/like`, {
     method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ clientId }),
   });
   const result = await response.json();
 
@@ -36,5 +38,5 @@ export async function likePost(id) {
     throw new Error(result.error || 'Could not like this post.');
   }
 
-  return result.post;
+  return result;
 }
