@@ -209,6 +209,25 @@ button {
   border-color: rgba(255, 255, 255, 0.18);
 }
 
+.skeleton-card {
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.04), transparent),
+    rgba(27, 29, 36, 0.86);
+  background-size: 220% 100%;
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes skeleton-shimmer {
+  from {
+    background-position: 120% 0;
+  }
+
+  to {
+    background-position: -120% 0;
+  }
+}
+
 .entry-meta {
   display: flex;
   align-items: flex-start;

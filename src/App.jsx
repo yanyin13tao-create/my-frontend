@@ -11,10 +11,21 @@ import {
 } from './likes';
 import { SubmissionModal } from './SubmissionModal';
 
+function mergeEntries(currentEntries, incomingPosts) {
+  const incomingIds = new Set(incomingPosts.map((post) => post.id));
+  const currentById = new Map(currentEntries.map((entry) => [entry.id, entry]));
+  const updatedPosts = incomingPosts.map((post) => ({ ...currentById.get(post.id), ...post }));
+  const localOnlyEntries = currentEntries.filter(
+    (entry) => entry.type !== 'system' && !incomingIds.has(entry.id),
+  );
+
+  return [...updatedPosts, ...localOnlyEntries];
+}
+
 export function App() {
   const [activeCategory, setActiveCategory] = React.useState('all');
   const [isModalOpen, setIsModalOpen] = React.useState(false);
-  const [postedEntries, setPostedEntries] = React.useState(fallbackEntries);
+  const [postedEntries, setPostedEntries] = React.useState([]);
   const [nextCursor, setNextCursor] = React.useState(null);
   const [feedVersion, setFeedVersion] = React.useState(null);
   const [hasMorePosts, setHasMorePosts] = React.useState(false);
@@ -34,7 +45,7 @@ export function App() {
         const result = await fetchPosts();
 
         if (!ignore) {
-          setPostedEntries([...result.posts, ...fallbackEntries]);
+          setPostedEntries((current) => mergeEntries(current, result.posts));
           setNextCursor(result.nextCursor);
           setFeedVersion(result.version);
           setHasMorePosts(result.hasMore);
@@ -54,10 +65,14 @@ export function App() {
     };
   }, []);
 
+  const feedEntries = React.useMemo(
+    () => (feedStatus === 'loading' ? postedEntries : [...postedEntries, ...fallbackEntries]),
+    [feedStatus, postedEntries],
+  );
   const visibleEntries =
     activeCategory === 'all'
-      ? postedEntries
-      : postedEntries.filter((entry) => entry.category === activeCategory);
+      ? feedEntries
+      : feedEntries.filter((entry) => entry.category === activeCategory);
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -106,7 +121,7 @@ export function App() {
       setPostedEntries((current) => {
         const existingIds = new Set(current.map((entry) => entry.id));
         const newPosts = result.posts.filter((post) => !existingIds.has(post.id));
-        return [...current.filter((entry) => entry.type !== 'system'), ...newPosts, ...fallbackEntries];
+        return [...current, ...newPosts];
       });
       setNextCursor(result.nextCursor);
       setFeedVersion(result.version);
@@ -277,18 +292,26 @@ export function App() {
           <p className="feed-message">Live posts could not be loaded. Showing local entries for now.</p>
         ) : null}
 
-        <section className="feed" aria-live="polite">
-          {visibleEntries.map((entry) => (
-            <EntryCard
-              entry={entry}
-              isDisliked={dislikedPostIds.has(entry.id)}
-              isLiked={likedPostIds.has(entry.id)}
-              key={entry.id}
-              onDislike={handleDislike}
-              onLike={handleLike}
-            />
-          ))}
-        </section>
+        {feedStatus === 'loading' ? (
+          <section className="feed" aria-label="Loading posts">
+            {Array.from({ length: 6 }, (_, index) => (
+              <article className="entry-card skeleton-card" key={index} />
+            ))}
+          </section>
+        ) : (
+          <section className="feed" aria-live="polite">
+            {visibleEntries.map((entry) => (
+              <EntryCard
+                entry={entry}
+                isDisliked={dislikedPostIds.has(entry.id)}
+                isLiked={likedPostIds.has(entry.id)}
+                key={entry.id}
+                onDislike={handleDislike}
+                onLike={handleLike}
+              />
+            ))}
+          </section>
+        )}
 
         {activeCategory === 'all' && hasMorePosts ? (
           <div className="load-more-row">
