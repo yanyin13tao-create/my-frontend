@@ -19,9 +19,8 @@ export function EntryCard({ entry, isDisliked, isLiked, onDislike, onLike }) {
         <div className="entry-actions">
           <button
             type="button"
-            aria-label={isLiked ? `Already supported ${entry.author}` : `Support ${entry.author}`}
+            aria-label={isLiked ? `Remove support for ${entry.author}` : `Support ${entry.author}`}
             aria-pressed={isLiked}
-            disabled={isLiked}
             onClick={() => onLike(entry)}
           >
             <HeartCrack aria-hidden="true" />
@@ -30,9 +29,8 @@ export function EntryCard({ entry, isDisliked, isLiked, onDislike, onLike }) {
           <button
             className="dislike-button"
             type="button"
-            aria-label={isDisliked ? `Already disliked ${entry.author}` : `Dislike ${entry.author}`}
+            aria-label={isDisliked ? `Remove dislike for ${entry.author}` : `Dislike ${entry.author}`}
             aria-pressed={isDisliked}
-            disabled={isDisliked}
             onClick={() => onDislike(entry)}
           >
             <ThumbsDown aria-hidden="true" />

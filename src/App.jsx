@@ -22,6 +22,20 @@ function mergeEntries(currentEntries, incomingPosts) {
   return [...updatedPosts, ...localOnlyEntries];
 }
 
+function updateSavedVote(postId, isActive, currentIds, setIds, saveIds) {
+  const nextIds = new Set(currentIds);
+
+  if (isActive) {
+    nextIds.add(postId);
+  } else {
+    nextIds.delete(postId);
+  }
+
+  setIds(nextIds);
+  saveIds(nextIds);
+  return nextIds;
+}
+
 export function App() {
   const [activeCategory, setActiveCategory] = React.useState('all');
   const [isModalOpen, setIsModalOpen] = React.useState(false);
@@ -133,19 +147,33 @@ export function App() {
   }
 
   async function handleLike(entry) {
-    if (likedPostIds.has(entry.id)) {
-      return;
-    }
-
-    const nextLikedPostIds = new Set(likedPostIds);
-    nextLikedPostIds.add(entry.id);
-    setLikedPostIds(nextLikedPostIds);
-    saveLikedPostIds(nextLikedPostIds);
+    const wasLiked = likedPostIds.has(entry.id);
+    const wasDisliked = dislikedPostIds.has(entry.id);
+    const nextLikedPostIds = updateSavedVote(
+      entry.id,
+      !wasLiked,
+      likedPostIds,
+      setLikedPostIds,
+      saveLikedPostIds,
+    );
+    const nextDislikedPostIds = updateSavedVote(
+      entry.id,
+      false,
+      dislikedPostIds,
+      setDislikedPostIds,
+      saveDislikedPostIds,
+    );
 
     setPostedEntries((current) =>
       current.map((currentEntry) =>
         currentEntry.id === entry.id
-          ? { ...currentEntry, count: Number(currentEntry.count || 0) + 1 }
+          ? {
+              ...currentEntry,
+              count: Math.max(0, Number(currentEntry.count || 0) + (wasLiked ? -1 : 1)),
+              dislikeCount: wasDisliked
+                ? Math.max(0, Number(currentEntry.dislikeCount || 0) - 1)
+                : Number(currentEntry.dislikeCount || 0),
+            }
           : currentEntry,
       ),
     );
@@ -157,6 +185,14 @@ export function App() {
     try {
       const result = await likePost(entry.id);
       const updatedPost = result.post;
+      updateSavedVote(entry.id, result.liked, nextLikedPostIds, setLikedPostIds, saveLikedPostIds);
+      updateSavedVote(
+        entry.id,
+        result.disliked,
+        nextDislikedPostIds,
+        setDislikedPostIds,
+        saveDislikedPostIds,
+      );
 
       setPostedEntries((current) =>
         current.map((currentEntry) =>
@@ -166,34 +202,48 @@ export function App() {
     } catch {
       setPostedEntries((current) =>
         current.map((currentEntry) =>
-          currentEntry.id === entry.id
-            ? { ...currentEntry, count: Math.max(0, Number(currentEntry.count || 0) - 1) }
-            : currentEntry,
+          currentEntry.id === entry.id ? entry : currentEntry,
         ),
       );
-      const rolledBackLikedPostIds = new Set(nextLikedPostIds);
-      rolledBackLikedPostIds.delete(entry.id);
-      setLikedPostIds(rolledBackLikedPostIds);
-      saveLikedPostIds(rolledBackLikedPostIds);
+      updateSavedVote(entry.id, wasLiked, nextLikedPostIds, setLikedPostIds, saveLikedPostIds);
+      updateSavedVote(
+        entry.id,
+        wasDisliked,
+        nextDislikedPostIds,
+        setDislikedPostIds,
+        saveDislikedPostIds,
+      );
     }
   }
 
   async function handleDislike(entry) {
-    if (dislikedPostIds.has(entry.id)) {
-      return;
-    }
-
-    const nextDislikedPostIds = new Set(dislikedPostIds);
-    nextDislikedPostIds.add(entry.id);
-    setDislikedPostIds(nextDislikedPostIds);
-    saveDislikedPostIds(nextDislikedPostIds);
+    const wasLiked = likedPostIds.has(entry.id);
+    const wasDisliked = dislikedPostIds.has(entry.id);
+    const nextDislikedPostIds = updateSavedVote(
+      entry.id,
+      !wasDisliked,
+      dislikedPostIds,
+      setDislikedPostIds,
+      saveDislikedPostIds,
+    );
+    const nextLikedPostIds = updateSavedVote(
+      entry.id,
+      false,
+      likedPostIds,
+      setLikedPostIds,
+      saveLikedPostIds,
+    );
 
     setPostedEntries((current) =>
       current.map((currentEntry) =>
         currentEntry.id === entry.id
           ? {
               ...currentEntry,
-              dislikeCount: Number(currentEntry.dislikeCount || 0) + 1,
+              count: wasLiked ? Math.max(0, Number(currentEntry.count || 0) - 1) : Number(currentEntry.count || 0),
+              dislikeCount: Math.max(
+                0,
+                Number(currentEntry.dislikeCount || 0) + (wasDisliked ? -1 : 1),
+              ),
             }
           : currentEntry,
       ),
@@ -207,11 +257,28 @@ export function App() {
       const result = await dislikePost(entry.id);
 
       if (result.deleted) {
+        updateSavedVote(entry.id, false, nextLikedPostIds, setLikedPostIds, saveLikedPostIds);
+        updateSavedVote(
+          entry.id,
+          false,
+          nextDislikedPostIds,
+          setDislikedPostIds,
+          saveDislikedPostIds,
+        );
         setPostedEntries((current) => current.filter((currentEntry) => currentEntry.id !== entry.id));
         return;
       }
 
       const updatedPost = result.post;
+      updateSavedVote(entry.id, result.liked, nextLikedPostIds, setLikedPostIds, saveLikedPostIds);
+      updateSavedVote(
+        entry.id,
+        result.disliked,
+        nextDislikedPostIds,
+        setDislikedPostIds,
+        saveDislikedPostIds,
+      );
+
       setPostedEntries((current) =>
         current.map((currentEntry) =>
           currentEntry.id === updatedPost.id ? updatedPost : currentEntry,
@@ -220,18 +287,17 @@ export function App() {
     } catch {
       setPostedEntries((current) =>
         current.map((currentEntry) =>
-          currentEntry.id === entry.id
-            ? {
-                ...currentEntry,
-                dislikeCount: Math.max(0, Number(currentEntry.dislikeCount || 0) - 1),
-              }
-            : currentEntry,
+          currentEntry.id === entry.id ? entry : currentEntry,
         ),
       );
-      const rolledBackDislikedPostIds = new Set(nextDislikedPostIds);
-      rolledBackDislikedPostIds.delete(entry.id);
-      setDislikedPostIds(rolledBackDislikedPostIds);
-      saveDislikedPostIds(rolledBackDislikedPostIds);
+      updateSavedVote(
+        entry.id,
+        wasDisliked,
+        nextDislikedPostIds,
+        setDislikedPostIds,
+        saveDislikedPostIds,
+      );
+      updateSavedVote(entry.id, wasLiked, nextLikedPostIds, setLikedPostIds, saveLikedPostIds);
     }
   }
 
