@@ -1,9 +1,14 @@
 import React from 'react';
 import { HeartCrack } from 'lucide-react';
-import { createPost, fetchPosts, likePost } from './api';
+import { createPost, dislikePost, fetchPosts, likePost } from './api';
 import { categories, fallbackEntries } from './constants';
 import { EntryCard } from './EntryCard';
-import { getLikedPostIds, saveLikedPostIds } from './likes';
+import {
+  getDislikedPostIds,
+  getLikedPostIds,
+  saveDislikedPostIds,
+  saveLikedPostIds,
+} from './likes';
 import { SubmissionModal } from './SubmissionModal';
 
 export function App() {
@@ -14,6 +19,7 @@ export function App() {
   const [submissionMessage, setSubmissionMessage] = React.useState('');
   const [feedStatus, setFeedStatus] = React.useState('loading');
   const [likedPostIds, setLikedPostIds] = React.useState(() => getLikedPostIds());
+  const [dislikedPostIds, setDislikedPostIds] = React.useState(() => getDislikedPostIds());
   const appName = import.meta.env.VITE_APP_NAME || 'WallOfBrokenPromises';
 
   React.useEffect(() => {
@@ -126,6 +132,63 @@ export function App() {
     }
   }
 
+  async function handleDislike(entry) {
+    if (dislikedPostIds.has(entry.id)) {
+      return;
+    }
+
+    const nextDislikedPostIds = new Set(dislikedPostIds);
+    nextDislikedPostIds.add(entry.id);
+    setDislikedPostIds(nextDislikedPostIds);
+    saveDislikedPostIds(nextDislikedPostIds);
+
+    setPostedEntries((current) =>
+      current.map((currentEntry) =>
+        currentEntry.id === entry.id
+          ? {
+              ...currentEntry,
+              dislikeCount: Number(currentEntry.dislikeCount || 0) + 1,
+            }
+          : currentEntry,
+      ),
+    );
+
+    if (entry.type === 'system') {
+      return;
+    }
+
+    try {
+      const result = await dislikePost(entry.id);
+
+      if (result.deleted) {
+        setPostedEntries((current) => current.filter((currentEntry) => currentEntry.id !== entry.id));
+        return;
+      }
+
+      const updatedPost = result.post;
+      setPostedEntries((current) =>
+        current.map((currentEntry) =>
+          currentEntry.id === updatedPost.id ? updatedPost : currentEntry,
+        ),
+      );
+    } catch {
+      setPostedEntries((current) =>
+        current.map((currentEntry) =>
+          currentEntry.id === entry.id
+            ? {
+                ...currentEntry,
+                dislikeCount: Math.max(0, Number(currentEntry.dislikeCount || 0) - 1),
+              }
+            : currentEntry,
+        ),
+      );
+      const rolledBackDislikedPostIds = new Set(nextDislikedPostIds);
+      rolledBackDislikedPostIds.delete(entry.id);
+      setDislikedPostIds(rolledBackDislikedPostIds);
+      saveDislikedPostIds(rolledBackDislikedPostIds);
+    }
+  }
+
   function resetModal() {
     setSubmissionStatus('idle');
     setSubmissionMessage('');
@@ -187,8 +250,10 @@ export function App() {
           {visibleEntries.map((entry) => (
             <EntryCard
               entry={entry}
+              isDisliked={dislikedPostIds.has(entry.id)}
               isLiked={likedPostIds.has(entry.id)}
               key={entry.id}
+              onDislike={handleDislike}
               onLike={handleLike}
             />
           ))}

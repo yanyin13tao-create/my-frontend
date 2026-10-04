@@ -1,13 +1,30 @@
 const likedPostsKey = 'minteaLikedPosts';
+const dislikedPostsKey = 'minteaDislikedPosts';
 
-export function getLikedPostIds() {
+function getSavedPostIds(key) {
   try {
-    return new Set(JSON.parse(localStorage.getItem(likedPostsKey) || '[]'));
+    return new Set(JSON.parse(localStorage.getItem(key) || '[]'));
   } catch {
     return new Set();
   }
 }
 
+function savePostIds(key, postIds) {
+  localStorage.setItem(key, JSON.stringify([...postIds]));
+}
+
+export function getLikedPostIds() {
+  return getSavedPostIds(likedPostsKey);
+}
+
 export function saveLikedPostIds(likedPostIds) {
-  localStorage.setItem(likedPostsKey, JSON.stringify([...likedPostIds]));
+  savePostIds(likedPostsKey, likedPostIds);
+}
+
+export function getDislikedPostIds() {
+  return getSavedPostIds(dislikedPostsKey);
+}
+
+export function saveDislikedPostIds(dislikedPostIds) {
+  savePostIds(dislikedPostsKey, dislikedPostIds);
 }

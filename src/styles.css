@@ -60,6 +60,7 @@ button {
 .filter,
 .badge,
 .entry-card footer,
+.entry-actions,
 .entry-card footer button,
 .modal-heading,
 .form-actions {
@@ -261,10 +262,23 @@ button {
   color: #fb7185;
 }
 
+.entry-actions {
+  gap: 0.7rem;
+  flex: 0 0 auto;
+}
+
+.entry-card footer .dislike-button:hover {
+  color: #fbbf24;
+}
+
 .entry-card footer button:disabled {
   cursor: default;
   color: #fb7185;
   opacity: 0.8;
+}
+
+.entry-card footer .dislike-button:disabled {
+  color: #fbbf24;
 }
 
 .modal-backdrop {

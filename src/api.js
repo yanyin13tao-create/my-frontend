@@ -38,3 +38,16 @@ export async function likePost(id) {
 
   return result;
 }
+
+export async function dislikePost(id) {
+  const response = await fetch(`/api/posts/${encodeURIComponent(id)}/dislike`, {
+    method: 'POST',
+  });
+  const result = await response.json();
+
+  if (!response.ok || (!result.post && !result.deleted)) {
+    throw new Error(result.error || 'Could not dislike this post.');
+  }
+
+  return result;
+}
