@@ -44,6 +44,8 @@ function App() {
   const [activeCategory, setActiveCategory] = React.useState('all');
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [postedEntries, setPostedEntries] = React.useState(entries);
+  const [submissionStatus, setSubmissionStatus] = React.useState('idle');
+  const [submissionMessage, setSubmissionMessage] = React.useState('');
   const appName = import.meta.env.VITE_APP_NAME || 'WallOfBrokenPromises';
 
   const visibleEntries =
@@ -51,7 +53,7 @@ function App() {
       ? postedEntries
       : postedEntries.filter((entry) => entry.category === activeCategory);
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     const story = String(form.get('story') || '').trim();
@@ -60,19 +62,49 @@ function App() {
 
     if (!story) return;
 
-    setPostedEntries((current) => [
-      {
-        id: crypto.randomUUID(),
-        category,
-        time: 'Just now',
-        author,
-        count: 0,
-        story,
-      },
-      ...current,
-    ]);
-    event.currentTarget.reset();
+    setSubmissionStatus('checking');
+    setSubmissionMessage('');
+
+    try {
+      const response = await fetch('/api/posts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ story, author, category }),
+      });
+      const result = await response.json();
+
+      if (!response.ok || !result.approved) {
+        setSubmissionStatus('blocked');
+        setSubmissionMessage(result.reason || 'This post cannot be published.');
+        return;
+      }
+
+      setPostedEntries((current) => [
+        {
+          ...result.post,
+          id: result.post.id || crypto.randomUUID(),
+        },
+        ...current,
+      ]);
+      event.currentTarget.reset();
+      setSubmissionStatus('idle');
+      setIsModalOpen(false);
+    } catch {
+      setSubmissionStatus('error');
+      setSubmissionMessage('Could not reach the safety check. Please try again.');
+    }
+  }
+
+  function resetModal() {
+    setSubmissionStatus('idle');
+    setSubmissionMessage('');
     setIsModalOpen(false);
+  }
+
+  function handleOpenModal() {
+    setSubmissionStatus('idle');
+    setSubmissionMessage('');
+    setIsModalOpen(true);
   }
 
   return (
@@ -83,7 +115,7 @@ function App() {
             <HeartCrack aria-hidden="true" />
             <h1>{appName}</h1>
           </div>
-          <button className="primary-button" type="button" onClick={() => setIsModalOpen(true)}>
+          <button className="primary-button" type="button" onClick={handleOpenModal}>
             <HeartCrack aria-hidden="true" />
             Spill The Tea
           </button>
@@ -143,7 +175,7 @@ function App() {
           <div className="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
             <div className="modal-heading">
               <h3 id="modal-title">Share Your Grievance</h3>
-              <button type="button" className="icon-button" onClick={() => setIsModalOpen(false)} aria-label="Close">
+              <button type="button" className="icon-button" onClick={resetModal} aria-label="Close">
                 <X aria-hidden="true" />
               </button>
             </div>
@@ -164,12 +196,15 @@ function App() {
                 The Story
                 <textarea name="story" rows="4" placeholder="What went down..." required />
               </label>
+              {submissionMessage ? (
+                <p className={`submission-message ${submissionStatus}`}>{submissionMessage}</p>
+              ) : null}
               <div className="form-actions">
-                <button type="button" className="ghost-button" onClick={() => setIsModalOpen(false)}>
+                <button type="button" className="ghost-button" onClick={resetModal}>
                   Cancel
                 </button>
-                <button type="submit" className="primary-button">
-                  Post Anonymously
+                <button type="submit" className="primary-button" disabled={submissionStatus === 'checking'}>
+                  {submissionStatus === 'checking' ? 'Checking...' : 'Post Anonymously'}
                 </button>
               </div>
             </form>
