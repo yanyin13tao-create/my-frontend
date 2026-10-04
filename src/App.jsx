@@ -1,6 +1,6 @@
 import React from 'react';
 import { HeartCrack } from 'lucide-react';
-import { createPost, fetchPosts } from './api';
+import { createPost, fetchPosts, likePost } from './api';
 import { categories, fallbackEntries } from './constants';
 import { EntryCard } from './EntryCard';
 import { SubmissionModal } from './SubmissionModal';
@@ -78,6 +78,37 @@ export function App() {
     }
   }
 
+  async function handleLike(entry) {
+    setPostedEntries((current) =>
+      current.map((currentEntry) =>
+        currentEntry.id === entry.id
+          ? { ...currentEntry, count: Number(currentEntry.count || 0) + 1 }
+          : currentEntry,
+      ),
+    );
+
+    if (entry.type === 'system') {
+      return;
+    }
+
+    try {
+      const updatedPost = await likePost(entry.id);
+      setPostedEntries((current) =>
+        current.map((currentEntry) =>
+          currentEntry.id === updatedPost.id ? updatedPost : currentEntry,
+        ),
+      );
+    } catch {
+      setPostedEntries((current) =>
+        current.map((currentEntry) =>
+          currentEntry.id === entry.id
+            ? { ...currentEntry, count: Math.max(0, Number(currentEntry.count || 0) - 1) }
+            : currentEntry,
+        ),
+      );
+    }
+  }
+
   function resetModal() {
     setSubmissionStatus('idle');
     setSubmissionMessage('');
@@ -137,7 +168,7 @@ export function App() {
 
         <section className="feed" aria-live="polite">
           {visibleEntries.map((entry) => (
-            <EntryCard entry={entry} key={entry.id} />
+            <EntryCard entry={entry} key={entry.id} onLike={handleLike} />
           ))}
         </section>
       </main>

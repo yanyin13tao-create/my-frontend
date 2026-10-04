@@ -25,3 +25,16 @@ export async function createPost({ story, author, category }) {
 
   return result.post;
 }
+
+export async function likePost(id) {
+  const response = await fetch(`/api/posts/${encodeURIComponent(id)}/like`, {
+    method: 'POST',
+  });
+  const result = await response.json();
+
+  if (!response.ok || !result.post) {
+    throw new Error(result.error || 'Could not like this post.');
+  }
+
+  return result.post;
+}
