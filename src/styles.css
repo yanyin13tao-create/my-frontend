@@ -180,6 +180,13 @@ button {
   gap: 1rem;
 }
 
+.feed-message {
+  margin: -0.75rem 0 1rem;
+  color: #fbbf24;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
 .entry-card {
   display: flex;
   min-height: 230px;

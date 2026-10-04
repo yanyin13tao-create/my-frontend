@@ -46,7 +46,38 @@ function App() {
   const [postedEntries, setPostedEntries] = React.useState(entries);
   const [submissionStatus, setSubmissionStatus] = React.useState('idle');
   const [submissionMessage, setSubmissionMessage] = React.useState('');
+  const [feedStatus, setFeedStatus] = React.useState('loading');
   const appName = import.meta.env.VITE_APP_NAME || 'WallOfBrokenPromises';
+
+  React.useEffect(() => {
+    let ignore = false;
+
+    async function loadPosts() {
+      try {
+        const response = await fetch('/api/posts');
+        const result = await response.json();
+
+        if (!response.ok || !Array.isArray(result.posts)) {
+          throw new Error('Invalid posts response.');
+        }
+
+        if (!ignore) {
+          setPostedEntries([...result.posts, ...entries]);
+          setFeedStatus('ready');
+        }
+      } catch {
+        if (!ignore) {
+          setFeedStatus('error');
+        }
+      }
+    }
+
+    loadPosts();
+
+    return () => {
+      ignore = true;
+    };
+  }, []);
 
   const visibleEntries =
     activeCategory === 'all'
@@ -147,6 +178,10 @@ function App() {
             );
           })}
         </div>
+
+        {feedStatus === 'error' ? (
+          <p className="feed-message">Live posts could not be loaded. Showing local entries for now.</p>
+        ) : null}
 
         <section className="feed" aria-live="polite">
           {visibleEntries.map((entry) => (
