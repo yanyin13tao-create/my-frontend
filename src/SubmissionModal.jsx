@@ -32,6 +32,10 @@ export function SubmissionModal({
             The Story
             <textarea name="story" rows="4" placeholder="What went down..." required />
           </label>
+          <label>
+            Image
+            <input name="image" type="file" accept="image/png,image/jpeg,image/webp,image/gif" />
+          </label>
           {submissionMessage ? (
             <p className={`submission-message ${submissionStatus}`}>{submissionMessage}</p>
           ) : null}

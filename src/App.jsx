@@ -1,6 +1,6 @@
 import React from 'react';
 import { HeartCrack } from 'lucide-react';
-import { createPost, dislikePost, fetchPosts, likePost } from './api';
+import { createComment, createPost, dislikePost, fetchComments, fetchPosts, likePost, uploadFile } from './api';
 import { categories, fallbackEntries } from './constants';
 import { EntryCard } from './EntryCard';
 import {
@@ -47,6 +47,9 @@ export function App() {
   const [submissionMessage, setSubmissionMessage] = React.useState('');
   const [feedStatus, setFeedStatus] = React.useState('loading');
   const [historyStatus, setHistoryStatus] = React.useState('idle');
+  const [openCommentsPostId, setOpenCommentsPostId] = React.useState(null);
+  const [commentsByPostId, setCommentsByPostId] = React.useState({});
+  const [commentsStatusByPostId, setCommentsStatusByPostId] = React.useState({});
   const [likedPostIds, setLikedPostIds] = React.useState(() => getLikedPostIds());
   const [dislikedPostIds, setDislikedPostIds] = React.useState(() => getDislikedPostIds());
   const appName = import.meta.env.VITE_APP_NAME || 'WallOfBrokenPromises';
@@ -95,6 +98,8 @@ export function App() {
     const story = String(form.get('story') || '').trim();
     const author = String(form.get('author') || '').trim() || 'Anonymous Victim';
     const category = String(form.get('category') || 'ghosted');
+    const imageFile = form.get('image');
+    const hasImage = imageFile instanceof File && imageFile.size > 0;
 
     if (!story) return;
 
@@ -102,7 +107,10 @@ export function App() {
     setSubmissionMessage('');
 
     try {
-      const post = await createPost({ story, author, category });
+      const attachments = hasImage
+        ? [{ fileId: (await uploadFile(imageFile)).id, kind: 'image' }]
+        : [];
+      const post = await createPost({ story, author, category, attachments });
 
       setPostedEntries((current) => [
         {
@@ -301,6 +309,59 @@ export function App() {
     }
   }
 
+  async function handleToggleComments(entry) {
+    if (entry.type === 'system') {
+      return;
+    }
+
+    if (openCommentsPostId === entry.id) {
+      setOpenCommentsPostId(null);
+      return;
+    }
+
+    setOpenCommentsPostId(entry.id);
+
+    if (commentsByPostId[entry.id]) {
+      return;
+    }
+
+    setCommentsStatusByPostId((current) => ({ ...current, [entry.id]: 'loading' }));
+
+    try {
+      const result = await fetchComments(entry.id);
+      setCommentsByPostId((current) => ({ ...current, [entry.id]: result.comments }));
+      setCommentsStatusByPostId((current) => ({ ...current, [entry.id]: 'ready' }));
+    } catch {
+      setCommentsStatusByPostId((current) => ({ ...current, [entry.id]: 'error' }));
+    }
+  }
+
+  async function handleCommentSubmit(entry, commentInput) {
+    setCommentsStatusByPostId((current) => ({ ...current, [entry.id]: 'posting' }));
+
+    try {
+      const attachments = commentInput.imageFile
+        ? [{ fileId: (await uploadFile(commentInput.imageFile)).id, kind: 'image' }]
+        : [];
+      const comment = await createComment(entry.id, { ...commentInput, attachments });
+      setCommentsByPostId((current) => ({
+        ...current,
+        [entry.id]: [comment, ...(current[entry.id] || [])],
+      }));
+      setPostedEntries((current) =>
+        current.map((currentEntry) =>
+          currentEntry.id === entry.id
+            ? { ...currentEntry, commentCount: Number(currentEntry.commentCount || 0) + 1 }
+            : currentEntry,
+        ),
+      );
+      setCommentsStatusByPostId((current) => ({ ...current, [entry.id]: 'ready' }));
+    } catch (error) {
+      setCommentsStatusByPostId((current) => ({ ...current, [entry.id]: 'ready' }));
+      throw error;
+    }
+  }
+
   function resetModal() {
     setSubmissionStatus('idle');
     setSubmissionMessage('');
@@ -369,12 +430,17 @@ export function App() {
             {visibleEntries.map((entry) => (
               <EntryCard
                 canVote={entry.type !== 'system'}
+                comments={commentsByPostId[entry.id] || []}
+                commentsStatus={commentsStatusByPostId[entry.id] || 'idle'}
                 entry={entry}
+                isCommentsOpen={openCommentsPostId === entry.id}
                 isDisliked={dislikedPostIds.has(entry.id)}
                 isLiked={likedPostIds.has(entry.id)}
                 key={entry.id}
+                onCommentSubmit={handleCommentSubmit}
                 onDislike={handleDislike}
                 onLike={handleLike}
+                onToggleComments={handleToggleComments}
               />
             ))}
           </section>

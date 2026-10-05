@@ -268,6 +268,32 @@ button {
   line-height: 1.65;
 }
 
+.attachment-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.attachment-grid a {
+  display: block;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #101114;
+}
+
+.attachment-grid img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+}
+
+.attachment-grid.small {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 0.65rem;
+}
+
 .entry-card footer {
   justify-content: space-between;
   gap: 1rem;
@@ -309,6 +335,64 @@ button {
 
 .entry-card footer .dislike-button:disabled {
   color: #fbbf24;
+}
+
+.comments-panel {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.comments-list {
+  display: grid;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.comment {
+  display: grid;
+  gap: 0.45rem;
+  border-radius: 8px;
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.comment p {
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.comment span,
+.comment-note {
+  color: #9aa3b2;
+  font-size: 0.78rem;
+}
+
+.comment-note {
+  margin: 0 0 0.75rem;
+}
+
+.comment-note.error {
+  color: #fb7185;
+}
+
+.comment-form {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.comment-form input,
+.comment-form textarea {
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 0.65rem 0.7rem;
+  background: #101114;
+  color: #f5f7fb;
+}
+
+.comment-form textarea {
+  resize: vertical;
 }
 
 .modal-backdrop {

@@ -1,6 +1,8 @@
 # WallOfBrokenPromises Frontend
 
-React + Vite is a strong fit for this frontend because the app builds into static files that Nginx can serve cheaply, while still giving the project a clean component model and build-time environment variables.
+React + Vite is a strong fit for this frontend because the app builds into static
+files while still giving the project a clean component model and build-time
+environment variables.
 
 ## Local Development
 
@@ -26,16 +28,21 @@ The static production bundle is written to `dist/`.
 docker build -t my-frontend-static:latest .
 ```
 
-The Dockerfile builds the Vite app and packages only `/usr/share/nginx/html` in a static artifact image. It does not run Nginx or publish ports because production uses the backend project's shared edge Nginx.
+The Dockerfile builds the Vite app and packages only `/usr/share/nginx/html` in a
+static artifact image. It does not run Nginx or publish ports because production
+uses the backend project's shared edge Nginx.
 
 ## Shared Nginx With The Backend
 
-The sibling `my-backend` project already publishes its Nginx container on host ports `80` and `443`. Production should use that one Nginx as the public edge:
+The sibling `my-backend` project publishes its Nginx container on host ports
+`80` and `443`. Production uses that one Nginx as the public edge:
 
 - `/` serves this React frontend
 - `/api/` proxies to `backend:3000`
 
-The `nginx.conf` in this repository is the shared-edge server config that should replace or be merged into `my-backend/docker/nginx/default.conf`. The backend Nginx image also needs the frontend `dist/` files copied to `/usr/share/nginx/html`.
+This frontend repo intentionally does not keep its own `nginx.conf`. The source
+of truth is `my-backend/docker/nginx/default.conf`, and the backend Nginx image
+copies this project's static artifact into `/usr/share/nginx/html`.
 
 ## Jenkins In Docker
 
